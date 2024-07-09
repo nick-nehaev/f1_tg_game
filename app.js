@@ -154,14 +154,50 @@ function checkAnswer(selectedDriver) {
     nextQuestionButton.style.display = 'inline-block';
 }
 
-// Инициализация приложения
+async function saveScore() {
+    const username = tg.initDataUnsafe.user.username || 'Anonymous';
+    try {
+        const response = await fetch('https://your-api-url.com/save-score', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, score }),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to save score');
+        }
+        const data = await response.json();
+        console.log('Score saved successfully:', data);
+    } catch (error) {
+        console.error('Error saving score:', error);
+        tg.showAlert('Failed to save your score. Please try again later.');
+    }
+}
+
+// Функция для загрузки таблицы лидеров
+async function loadLeaderboard() {
+    try {
+        const response = await fetch('https://your-api-url.com/leaderboard');
+        if (!response.ok) {
+            throw new Error('Failed to load leaderboard');
+        }
+        const data = await response.json();
+        leaderboard = data;
+        showLeaderboard();
+    } catch (error) {
+        console.error('Error loading leaderboard:', error);
+        tg.showAlert('Failed to load leaderboard. Please try again later.');
+    }
+}
+
+// Обновляем функцию initApp
 function initApp() {
     document.getElementById('main-menu').style.display = 'block';
     document.getElementById('game-container').style.display = 'none';
     document.getElementById('leaderboard-container').style.display = 'none';
 
-    // Здесь можно добавить код для загрузки таблицы лидеров с сервера
-    // Например, использовать fetch для отправки GET-запроса
+    loadLeaderboard();
 }
 
 // Запуск приложения
