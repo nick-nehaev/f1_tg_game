@@ -25,10 +25,7 @@ function nextQuestion() {
     currentDriver = drivers[Math.floor(Math.random() * drivers.length)];
     const options = getRandomOptions(currentDriver);
 
-    // Здесь нужно добавить путь к фотографии пилота
-    //document.getElementById('driver-photo').style.backgroundImage = `url('images/${currentDriver.replace(' ', '_').toLowerCase()}.jpg')`;
     document.getElementById('driver-photo').style.backgroundImage = `url('images/${currentDriver}.jpg')`;
-
 
     options.forEach(option => {
         const button = document.createElement('button');
@@ -104,34 +101,21 @@ document.getElementById('play-button').addEventListener('click', startGame);
 document.getElementById('leaderboard-button').addEventListener('click', showLeaderboard);
 document.getElementById('back-to-menu').addEventListener('click', backToMenu);
 
-// Интеграция с Telegram Mini App
 window.Telegram.WebApp.ready();
 
 const tg = window.Telegram.WebApp;
 
-// Обновление темы в соответствии с настройками Telegram
 const isDarkMode = tg.colorScheme === 'dark';
 if (isDarkMode) {
     document.body.classList.add('dark-mode');
 }
 
-// Функция для сохранения результата в таблицу лидеров
-function saveScore() {
-    const username = tg.initDataUnsafe.user.username || 'Anonymous';
-    leaderboard.push({ username, score });
-    
-    // Здесь можно добавить код для отправки результата на сервер
-    // Например, использовать fetch для отправки POST-запроса
-}
-
-// Функция для завершения игры
 function endGame() {
     saveScore();
     tg.showAlert(`Game Over! Your final score is ${score}.`);
     backToMenu();
 }
 
-// Обновляем функцию checkAnswer
 function checkAnswer(selectedDriver) {
     const resultElement = document.getElementById('result');
     const nextQuestionButton = document.getElementById('next-question');
@@ -175,7 +159,6 @@ async function saveScore() {
     }
 }
 
-// Функция для загрузки таблицы лидеров
 async function loadLeaderboard() {
     try {
         const response = await fetch('https://your-api-url.com/leaderboard');
@@ -191,7 +174,6 @@ async function loadLeaderboard() {
     }
 }
 
-// Обновляем функцию initApp
 function initApp() {
     document.getElementById('main-menu').style.display = 'block';
     document.getElementById('game-container').style.display = 'none';
