@@ -165,12 +165,12 @@ function showLeaderboard() {
             <th colspan="3">Cars</th>
         </tr>
         <tr>
-            <th>Username</th>
-            <th>Score</th>
-            <th>Difficulty</th>
-            <th>Username</th>
-            <th>Score</th>
-            <th>Difficulty</th>
+            <th>Name</th>
+            <th>S</th>
+            <th>lvl</th>
+            <th>Name</th>
+            <th>S</th>
+            <th>lvl</th>
         </tr>
     `;
     
@@ -182,16 +182,29 @@ function showLeaderboard() {
         const carsEntry = leaderboard.cars[i] || { username: '', score: '', difficulty: '' };
         
         row.innerHTML = `
-            <td>${driversEntry.username}</td>
+            <td title="${driversEntry.username}">${truncateUsername(driversEntry.username)}</td>
             <td>${driversEntry.score}</td>
-            <td>${driversEntry.difficulty}</td>
-            <td>${carsEntry.username}</td>
+            <td>${getDifficultyShorthand(driversEntry.difficulty)}</td>
+            <td title="${carsEntry.username}">${truncateUsername(carsEntry.username)}</td>
             <td>${carsEntry.score}</td>
-            <td>${carsEntry.difficulty}</td>
+            <td>${getDifficultyShorthand(carsEntry.difficulty)}</td>
         `;
     }
     
     leaderboardList.appendChild(table);
+}
+
+function truncateUsername(username) {
+    return username.length > 8 ? username.substring(0, 7) + '…' : username;
+}
+
+function getDifficultyShorthand(difficulty) {
+    switch(difficulty) {
+        case 'easy': return 'E';
+        case 'medium': return 'M';
+        case 'hard': return 'H';
+        default: return '-';
+    }
 }
 
 function backToMenu() {
