@@ -141,18 +141,24 @@ function checkAnswer(selectedDriver) {
 async function saveScore() {
     const username = tg.initDataUnsafe.user.username || 'Anonymous';
     try {
-        const response = await fetch('https://your-api-url.com/save-score', {
-            method: 'POST',
+        const response = await fetch('https://api.github.com/gists/' + process.env.GIST_ID, {
+            method: 'PATCH',
             headers: {
+                'Authorization': `token ${process.env.GH_TOKEN}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ username, score }),
+            body: JSON.stringify({
+                files: {
+                    'leaderboard.json': {
+                        content: JSON.stringify([...leaderboard, { username, score }])
+                    }
+                }
+            })
         });
         if (!response.ok) {
             throw new Error('Failed to save score');
         }
-        const data = await response.json();
-        console.log('Score saved successfully:', data);
+        console.log('Score saved successfully');
     } catch (error) {
         console.error('Error saving score:', error);
         tg.showAlert('Failed to save your score. Please try again later.');
@@ -161,12 +167,16 @@ async function saveScore() {
 
 async function loadLeaderboard() {
     try {
-        const response = await fetch('https://your-api-url.com/leaderboard');
+        const response = await fetch('https://api.github.com/gists/' + process.env.GIST_ID, {
+            headers: {
+                'Authorization': `token ${process.env.GH_TOKEN}`,
+            }
+        });
         if (!response.ok) {
             throw new Error('Failed to load leaderboard');
         }
         const data = await response.json();
-        leaderboard = data;
+        leaderboard = JSON.parse(data.files['leaderboard.json'].content);
         showLeaderboard();
     } catch (error) {
         console.error('Error loading leaderboard:', error);
