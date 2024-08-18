@@ -39,7 +39,8 @@ function nextQuestion() {
     currentItem = items[Math.floor(Math.random() * items.length)];
     const options = getRandomOptions(currentItem, items);
 
-    document.getElementById('item-photo').style.backgroundImage = `url('${gameMode}/images/${encodeURIComponent(currentItem)}.jpg')`;
+    document.getElementById('item-photo').style.backgroundImage = `url('${gameMode}/images/${currentItem}.jpg')`;
+    //document.getElementById('item-photo').style.backgroundImage = `url('${gameMode}/images/${encodeURIComponent(currentItem)}.jpg')`;
 
     options.forEach(option => {
         const button = document.createElement('button');
