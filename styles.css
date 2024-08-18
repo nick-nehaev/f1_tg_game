@@ -37,8 +37,8 @@ body {
 }
 
 button {
-    margin: 10px 5px;  /* Увеличено вертикальное расстояние между кнопками */
-    padding: 12px 24px;  /* Немного увеличен размер кнопок для удобства нажатия */
+    margin: 10px 5px;
+    padding: 12px 24px;
     font-size: 16px;
     cursor: pointer;
     color: var(--f1-white);
@@ -60,7 +60,7 @@ button.medium {
     background-color: var(--medium-red);
 }
 
-button.hard {
+button.hard, #options button {
     background-color: var(--hard-red);
 }
 
@@ -83,7 +83,8 @@ button.return {
 
 #leaderboard-container table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     margin-top: 20px;
     font-size: 14px;
 }
@@ -101,6 +102,24 @@ button.return {
 
 #leaderboard-container tr:nth-child(even) {
     background-color: rgba(255, 24, 1, 0.1);
+}
+
+#leaderboard-container th:first-child,
+#leaderboard-container td:first-child {
+    border-left: 1px solid var(--f1-red);
+}
+
+#leaderboard-container th:last-child,
+#leaderboard-container td:last-child {
+    border-right: 1px solid var(--f1-red);
+}
+
+#leaderboard-container tr:first-child th {
+    border-top: 1px solid var(--f1-red);
+}
+
+#leaderboard-container tr:last-child td {
+    border-bottom: 1px solid var(--f1-red);
 }
 
 .dark-mode {
@@ -124,12 +143,13 @@ button.return {
     background-color: var(--f1-dark-red);
 }
 
-.dark-mode button.hard {
+.dark-mode button.hard,
+.dark-mode #options button {
     background-color: var(--f1-darker-red);
 }
 
 .dark-mode button.return {
-    background-color: #2B4057;  /* Темно-синий для темной темы */
+    background-color: #2B4057;
 }
 
 .dark-mode #leaderboard-container th {
@@ -137,10 +157,11 @@ button.return {
 }
 
 .dark-mode #leaderboard-container tr:nth-child(even) {
-    background-color: rgba(153, 16, 0, 0.2);  /* Более темный оттенок красного */
+    background-color: rgba(153, 16, 0, 0.2);
 }
 
-.dark-mode #leaderboard-container td, .dark-mode #leaderboard-container th {
+.dark-mode #leaderboard-container td,
+.dark-mode #leaderboard-container th {
     border-color: var(--f1-dark-red);
 }
 
@@ -157,7 +178,7 @@ button.return {
 
     button {
         width: 100%;
-        margin: 10px 0;  /* Увеличено вертикальное расстояние между кнопками */
+        margin: 10px 0;
     }
 
     #item-photo {
