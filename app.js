@@ -1,16 +1,29 @@
-const drivers = [
-    "Lewis Hamilton", "George Russell", "Max Verstappen", "Sergio Perez",
-    "Charles Leclerc", "Carlos Sainz", "Lando Norris", "Oscar Piastri",
-    "Fernando Alonso", "Lance Stroll", "Esteban Ocon", "Pierre Gasly",
-    "Yuki Tsunoda", "Daniel Ricciardo", "Valtteri Bottas", "Zhou Guanyu",
-    "Kevin Magnussen", "Nico Hulkenberg", "Alexander Albon", "Logan Sargeant"
-];
-
+let drivers = [];
+let cars = [];
 let score = 0;
-let currentDriver;
-let leaderboard = [];
+let currentItem;
+let gameMode = 'drivers';
+let leaderboard = {drivers: [], cars: []};
 
-function startGame() {
+async function loadNames(category) {
+    try {
+        const response = await fetch(`${category}/names.txt`);
+        const text = await response.text();
+        return text.split('\n').filter(name => name.trim() !== '');
+    } catch (error) {
+        console.error(`Error loading ${category} names:`, error);
+        return [];
+    }
+}
+
+async function initializeGame() {
+    drivers = await loadNames('drivers');
+    cars = await loadNames('cars');
+    initApp();
+}
+
+function startGame(mode) {
+    gameMode = mode;
     score = 0;
     document.getElementById('main-menu').style.display = 'none';
     document.getElementById('game-container').style.display = 'block';
@@ -22,10 +35,11 @@ function nextQuestion() {
     document.getElementById('result').innerHTML = '';
     document.getElementById('next-question').style.display = 'none';
 
-    currentDriver = drivers[Math.floor(Math.random() * drivers.length)];
-    const options = getRandomOptions(currentDriver);
+    const items = gameMode === 'drivers' ? drivers : cars;
+    currentItem = items[Math.floor(Math.random() * items.length)];
+    const options = getRandomOptions(currentItem, items);
 
-    document.getElementById('driver-photo').style.backgroundImage = `url('images/${currentDriver}.jpg')`;
+    document.getElementById('item-photo').style.backgroundImage = `url('${gameMode}/images/${encodeURIComponent(currentItem)}.jpg')`;
 
     options.forEach(option => {
         const button = document.createElement('button');
@@ -35,12 +49,12 @@ function nextQuestion() {
     });
 }
 
-function getRandomOptions(correctAnswer) {
+function getRandomOptions(correctAnswer, items) {
     const options = [correctAnswer];
     while (options.length < 4) {
-        const randomDriver = drivers[Math.floor(Math.random() * drivers.length)];
-        if (!options.includes(randomDriver)) {
-            options.push(randomDriver);
+        const randomItem = items[Math.floor(Math.random() * items.length)];
+        if (!options.includes(randomItem)) {
+            options.push(randomItem);
         }
     }
     return shuffleArray(options);
@@ -54,24 +68,47 @@ function shuffleArray(array) {
     return array;
 }
 
-function checkAnswer(selectedDriver) {
+function checkAnswer(selectedItem) {
     const resultElement = document.getElementById('result');
     const nextQuestionButton = document.getElementById('next-question');
 
-    if (selectedDriver === currentDriver) {
+    if (selectedItem === currentItem) {
         score++;
         resultElement.textContent = `Correct! Your score is ${score}.`;
         resultElement.style.color = 'green';
+        nextQuestionButton.style.display = 'inline-block';
     } else {
-        resultElement.textContent = `Wrong. The correct answer is ${currentDriver}. Your score is ${score}.`;
+        resultElement.textContent = `Wrong. The correct answer is ${currentItem}. Your score is ${score}.`;
         resultElement.style.color = 'red';
+        endGame();
+        return;
     }
 
     document.querySelectorAll('#options button').forEach(button => {
         button.disabled = true;
     });
+}
 
-    nextQuestionButton.style.display = 'inline-block';
+function endGame() {
+    saveScore();
+    window.Telegram.WebApp.showAlert(`Game Over! Your final score is ${score}.`);
+    backToMenu();
+}
+
+function saveScore() {
+    const username = window.Telegram.WebApp.initDataUnsafe.user.username || 'Anonymous';
+    leaderboard[gameMode].push({ username, score });
+    leaderboard[gameMode].sort((a, b) => b.score - a.score);
+    leaderboard[gameMode] = leaderboard[gameMode].slice(0, 10); // Keep only top 10
+    localStorage.setItem('f1QuizLeaderboard', JSON.stringify(leaderboard));
+}
+
+function loadLeaderboard() {
+    const storedLeaderboard = localStorage.getItem('f1QuizLeaderboard');
+    if (storedLeaderboard) {
+        leaderboard = JSON.parse(storedLeaderboard);
+    }
+    showLeaderboard();
 }
 
 function showLeaderboard() {
@@ -81,13 +118,41 @@ function showLeaderboard() {
     const leaderboardList = document.getElementById('leaderboard-list');
     leaderboardList.innerHTML = '';
     
-    leaderboard.sort((a, b) => b.score - a.score);
+    const table = document.createElement('table');
+    table.innerHTML = `
+        <tr>
+            <th>Rank</th>
+            <th>Username</th>
+            <th>Drivers Score</th>
+            <th>Cars Score</th>
+        </tr>
+    `;
     
-    leaderboard.forEach((entry, index) => {
-        const listItem = document.createElement('div');
-        listItem.textContent = `${index + 1}. ${entry.username}: ${entry.score}`;
-        leaderboardList.appendChild(listItem);
+    const combinedLeaderboard = {};
+    
+    ['drivers', 'cars'].forEach(mode => {
+        leaderboard[mode].forEach(entry => {
+            if (!combinedLeaderboard[entry.username]) {
+                combinedLeaderboard[entry.username] = { username: entry.username, drivers: 0, cars: 0 };
+            }
+            combinedLeaderboard[entry.username][mode] = entry.score;
+        });
     });
+    
+    Object.values(combinedLeaderboard)
+        .sort((a, b) => (b.drivers + b.cars) - (a.drivers + a.cars))
+        .slice(0, 10)
+        .forEach((entry, index) => {
+            const row = table.insertRow();
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${entry.username}</td>
+                <td>${entry.drivers}</td>
+                <td>${entry.cars}</td>
+            `;
+        });
+    
+    leaderboardList.appendChild(table);
 }
 
 function backToMenu() {
@@ -97,90 +162,24 @@ function backToMenu() {
 }
 
 document.getElementById('next-question').addEventListener('click', nextQuestion);
-document.getElementById('play-button').addEventListener('click', startGame);
-document.getElementById('leaderboard-button').addEventListener('click', showLeaderboard);
+document.getElementById('play-drivers').addEventListener('click', () => startGame('drivers'));
+document.getElementById('play-cars').addEventListener('click', () => startGame('cars'));
+document.getElementById('leaderboard-button').addEventListener('click', loadLeaderboard);
 document.getElementById('back-to-menu').addEventListener('click', backToMenu);
 
 window.Telegram.WebApp.ready();
 
-const tg = window.Telegram.WebApp;
-
-const isDarkMode = tg.colorScheme === 'dark';
+const isDarkMode = window.Telegram.WebApp.colorScheme === 'dark';
 if (isDarkMode) {
     document.body.classList.add('dark-mode');
-}
-
-function endGame() {
-    saveScore();
-    tg.showAlert(`Game Over! Your final score is ${score}.`);
-    backToMenu();
-}
-
-function checkAnswer(selectedDriver) {
-    const resultElement = document.getElementById('result');
-    const nextQuestionButton = document.getElementById('next-question');
-
-    if (selectedDriver === currentDriver) {
-        score++;
-        resultElement.textContent = `Correct! Your score is ${score}.`;
-        resultElement.style.color = 'green';
-    } else {
-        resultElement.textContent = `Wrong. The correct answer is ${currentDriver}. Your score is ${score}.`;
-        resultElement.style.color = 'red';
-        endGame();
-        return;
-    }
-
-    document.querySelectorAll('#options button').forEach(button => {
-        button.disabled = true;
-    });
-
-    nextQuestionButton.style.display = 'inline-block';
-}
-
-async function saveScore() {
-    const username = tg.initDataUnsafe.user.username || 'Anonymous';
-    try {
-        const response = await fetch('https://your-api-url.com/save-score', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ username, score }),
-        });
-        if (!response.ok) {
-            throw new Error('Failed to save score');
-        }
-        const data = await response.json();
-        console.log('Score saved successfully:', data);
-    } catch (error) {
-        console.error('Error saving score:', error);
-        tg.showAlert('Failed to save your score. Please try again later.');
-    }
-}
-
-async function loadLeaderboard() {
-    try {
-        const response = await fetch('https://your-api-url.com/leaderboard');
-        if (!response.ok) {
-            throw new Error('Failed to load leaderboard');
-        }
-        const data = await response.json();
-        leaderboard = data;
-        showLeaderboard();
-    } catch (error) {
-        console.error('Error loading leaderboard:', error);
-        tg.showAlert('Failed to load leaderboard. Please try again later.');
-    }
 }
 
 function initApp() {
     document.getElementById('main-menu').style.display = 'block';
     document.getElementById('game-container').style.display = 'none';
     document.getElementById('leaderboard-container').style.display = 'none';
-
     loadLeaderboard();
 }
 
 // Запуск приложения
-initApp();
+initializeGame();
