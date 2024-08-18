@@ -6,7 +6,7 @@ let gameMode = '';
 let difficulty = '';
 let leaderboard = {drivers: [], cars: []};
 
-const LEADERBOARD_URL = 'https://api.npoint.io/abcdef1234567890'; // Замените на ваш URL
+const LEADERBOARD_URL = 'https://api.npoint.io/e2ef559b827af9391eab';
 
 async function loadNames(category, difficulty) {
     try {
