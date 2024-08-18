@@ -5,6 +5,8 @@ let currentItem;
 let gameMode = 'drivers';
 let leaderboard = {drivers: [], cars: []};
 
+const LEADERBOARD_URL = 'https://api.npoint.io/e2ef559b827af9391eab';
+
 async function loadNames(category) {
     try {
         const response = await fetch(`${category}/names.txt`);
@@ -19,6 +21,7 @@ async function loadNames(category) {
 async function initializeGame() {
     drivers = await loadNames('drivers');
     cars = await loadNames('cars');
+    await loadLeaderboard();
     initApp();
 }
 
@@ -96,20 +99,52 @@ function endGame() {
     backToMenu();
 }
 
-function saveScore() {
+async function saveScore() {
     const username = window.Telegram.WebApp.initDataUnsafe.user.username || 'Anonymous';
-    leaderboard[gameMode].push({ username, score });
+    
+    // Найдем существующую запись пользователя или добавим новую
+    let userIndex = leaderboard[gameMode].findIndex(entry => entry.username === username);
+    if (userIndex === -1) {
+        leaderboard[gameMode].push({ username, score });
+    } else if (leaderboard[gameMode][userIndex].score < score) {
+        leaderboard[gameMode][userIndex].score = score;
+    } else {
+        // Если новый счет не выше предыдущего, выходим из функции
+        return;
+    }
+
+    // Сортируем и обрезаем до 10 лучших результатов
     leaderboard[gameMode].sort((a, b) => b.score - a.score);
-    leaderboard[gameMode] = leaderboard[gameMode].slice(0, 10); // Keep only top 10
-    localStorage.setItem('f1QuizLeaderboard', JSON.stringify(leaderboard));
+    leaderboard[gameMode] = leaderboard[gameMode].slice(0, 10);
+
+    try {
+        const response = await fetch(LEADERBOARD_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(leaderboard),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to save leaderboard');
+        }
+    } catch (error) {
+        console.error('Error saving leaderboard:', error);
+        window.Telegram.WebApp.showAlert('Failed to save your score. Please try again later.');
+    }
 }
 
-function loadLeaderboard() {
-    const storedLeaderboard = localStorage.getItem('f1QuizLeaderboard');
-    if (storedLeaderboard) {
-        leaderboard = JSON.parse(storedLeaderboard);
+async function loadLeaderboard() {
+    try {
+        const response = await fetch(LEADERBOARD_URL);
+        if (!response.ok) {
+            throw new Error('Failed to load leaderboard');
+        }
+        leaderboard = await response.json();
+    } catch (error) {
+        console.error('Error loading leaderboard:', error);
+        window.Telegram.WebApp.showAlert('Failed to load leaderboard. Please try again later.');
     }
-    showLeaderboard();
 }
 
 function showLeaderboard() {
@@ -122,36 +157,29 @@ function showLeaderboard() {
     const table = document.createElement('table');
     table.innerHTML = `
         <tr>
-            <th>Rank</th>
+            <th colspan="2">Drivers</th>
+            <th colspan="2">Cars</th>
+        </tr>
+        <tr>
             <th>Username</th>
-            <th>Drivers Score</th>
-            <th>Cars Score</th>
+            <th>Score</th>
+            <th>Username</th>
+            <th>Score</th>
         </tr>
     `;
     
-    const combinedLeaderboard = {};
-    
-    ['drivers', 'cars'].forEach(mode => {
-        leaderboard[mode].forEach(entry => {
-            if (!combinedLeaderboard[entry.username]) {
-                combinedLeaderboard[entry.username] = { username: entry.username, drivers: 0, cars: 0 };
-            }
-            combinedLeaderboard[entry.username][mode] = entry.score;
-        });
-    });
-    
-    Object.values(combinedLeaderboard)
-        .sort((a, b) => (b.drivers + b.cars) - (a.drivers + a.cars))
-        .slice(0, 10)
-        .forEach((entry, index) => {
-            const row = table.insertRow();
-            row.innerHTML = `
-                <td>${index + 1}</td>
-                <td>${entry.username}</td>
-                <td>${entry.drivers}</td>
-                <td>${entry.cars}</td>
-            `;
-        });
+    for (let i = 0; i < 10; i++) {
+        const row = table.insertRow();
+        const driversEntry = leaderboard.drivers[i] || { username: '', score: '' };
+        const carsEntry = leaderboard.cars[i] || { username: '', score: '' };
+        
+        row.innerHTML = `
+            <td>${driversEntry.username}</td>
+            <td>${driversEntry.score}</td>
+            <td>${carsEntry.username}</td>
+            <td>${carsEntry.score}</td>
+        `;
+    }
     
     leaderboardList.appendChild(table);
 }
