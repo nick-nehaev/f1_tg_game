@@ -2,7 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const fetch = require('node-fetch');
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
-const githubToken = process.env.GITHUB_TOKEN;
+const githubToken = process.env.GH_TOKEN;
 const gistId = process.env.GIST_ID;
 
 const bot = new TelegramBot(token, {polling: true});
