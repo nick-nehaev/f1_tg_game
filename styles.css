@@ -1,12 +1,17 @@
 :root {
     --f1-red: #FF1801;
     --f1-dark-red: #991000;
+    --f1-darker-red: #660B00;
     --f1-black: #15151E;
     --f1-white: #F6F4F4;
     --background-light: #F0F0F0;
     --background-dark: #2F2F2F;
     --text-light: #15151E;
     --text-dark: #F6F4F4;
+    --easy-red: #FF6B6B;
+    --medium-red: #FF4136;
+    --hard-red: #DC3545;
+    --return-blue: #3D5A80;
 }
 
 body {
@@ -32,11 +37,10 @@ body {
 }
 
 button {
-    margin: 5px;
-    padding: 10px 20px;
+    margin: 10px 5px;  /* Увеличено вертикальное расстояние между кнопками */
+    padding: 12px 24px;  /* Немного увеличен размер кнопок для удобства нажатия */
     font-size: 16px;
     cursor: pointer;
-    background-color: var(--f1-red);
     color: var(--f1-white);
     border: none;
     border-radius: 5px;
@@ -44,7 +48,24 @@ button {
 }
 
 button:hover {
-    background-color: var(--f1-dark-red);
+    filter: brightness(90%);
+}
+
+/* Стили для кнопок уровней сложности */
+button.easy {
+    background-color: var(--easy-red);
+}
+
+button.medium {
+    background-color: var(--medium-red);
+}
+
+button.hard {
+    background-color: var(--hard-red);
+}
+
+button.return {
+    background-color: var(--return-blue);
 }
 
 #next-question, #end-game {
@@ -95,13 +116,20 @@ button:hover {
     box-shadow: 0 0 10px rgba(255,255,255,0.1);
 }
 
-.dark-mode button {
+.dark-mode button.easy {
     background-color: var(--f1-red);
-    color: var(--f1-white);
 }
 
-.dark-mode button:hover {
+.dark-mode button.medium {
     background-color: var(--f1-dark-red);
+}
+
+.dark-mode button.hard {
+    background-color: var(--f1-darker-red);
+}
+
+.dark-mode button.return {
+    background-color: #2B4057;  /* Темно-синий для темной темы */
 }
 
 .dark-mode #leaderboard-container th {
@@ -109,7 +137,11 @@ button:hover {
 }
 
 .dark-mode #leaderboard-container tr:nth-child(even) {
-    background-color: rgba(255, 24, 1, 0.2);
+    background-color: rgba(153, 16, 0, 0.2);  /* Более темный оттенок красного */
+}
+
+.dark-mode #leaderboard-container td, .dark-mode #leaderboard-container th {
+    border-color: var(--f1-dark-red);
 }
 
 @media (max-width: 480px) {
@@ -125,7 +157,7 @@ button:hover {
 
     button {
         width: 100%;
-        margin: 5px 0;
+        margin: 10px 0;  /* Увеличено вертикальное расстояние между кнопками */
     }
 
     #item-photo {
