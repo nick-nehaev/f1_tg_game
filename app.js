@@ -141,6 +141,8 @@ async function loadLeaderboard() {
             throw new Error('Failed to load leaderboard');
         }
         leaderboard = await response.json();
+        
+        showLeaderboard();
     } catch (error) {
         console.error('Error loading leaderboard:', error);
         window.Telegram.WebApp.showAlert('Failed to load leaderboard. Please try again later.');
