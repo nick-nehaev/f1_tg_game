@@ -102,15 +102,32 @@ function checkAnswer(selectedItem) {
 }
 
 function endGame() {
-    saveScore();
-    window.Telegram.WebApp.showAlert(`Game Over! Your final score is ${score}.`);
-    backToMenu();
+    saveScore().then(() => {
+        loadLeaderboard();  // Загружаем обновленный лидерборд
+        window.Telegram.WebApp.showAlert(`Game Over! Your final score is ${score}.`);
+        backToMenu();
+    });
 }
 
 async function saveScore() {
     const username = window.Telegram.WebApp.initDataUnsafe.user.username || 'Anonymous';
     
-    leaderboard[gameMode].push({ username, score, difficulty });
+    // Проверяем, существует ли уже запись для этого пользователя
+    const existingEntryIndex = leaderboard[gameMode].findIndex(
+        entry => entry.username === username && entry.difficulty === difficulty
+    );
+
+    if (existingEntryIndex !== -1) {
+        // Если запись существует, обновляем ее только если новый счет выше
+        if (score > leaderboard[gameMode][existingEntryIndex].score) {
+            leaderboard[gameMode][existingEntryIndex].score = score;
+        }
+    } else {
+        // Если записи нет, добавляем новую
+        leaderboard[gameMode].push({ username, score, difficulty });
+    }
+
+    // Сортируем лидерборд
     leaderboard[gameMode].sort((a, b) => {
         if (a.difficulty !== b.difficulty) {
             const difficultyOrder = {hard: 2, medium: 1, easy: 0};
@@ -118,6 +135,8 @@ async function saveScore() {
         }
         return b.score - a.score;
     });
+
+    // Оставляем только топ-10 результатов
     leaderboard[gameMode] = leaderboard[gameMode].slice(0, 10);
 
     try {
@@ -131,6 +150,7 @@ async function saveScore() {
         if (!response.ok) {
             throw new Error('Failed to save leaderboard');
         }
+        console.log('Leaderboard saved successfully');
     } catch (error) {
         console.error('Error saving leaderboard:', error);
         window.Telegram.WebApp.showAlert('Failed to save your score. Please try again later.');
@@ -143,8 +163,17 @@ async function loadLeaderboard() {
         if (!response.ok) {
             throw new Error('Failed to load leaderboard');
         }
-        leaderboard = await response.json();
-        console.log('Leaderboard loaded:', leaderboard);
+        const data = await response.json();
+        console.log('Loaded leaderboard data:', data);
+        
+        if (data && typeof data === 'object' && 'drivers' in data && 'cars' in data) {
+            leaderboard = data;
+        } else {
+            console.error('Invalid leaderboard data structure');
+            leaderboard = { drivers: [], cars: [] };
+        }
+        
+        showLeaderboard();
     } catch (error) {
         console.error('Error loading leaderboard:', error);
         window.Telegram.WebApp.showAlert('Failed to load leaderboard. Please try again later.');
@@ -203,7 +232,7 @@ function getDifficultyShorthand(difficulty) {
         case 'easy': return 'E';
         case 'medium': return 'M';
         case 'hard': return 'H';
-        default: return '-';
+        default: return '';
     }
 }
 
