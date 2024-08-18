@@ -1,12 +1,3 @@
-const TelegramBot = require('node-telegram-bot-api');
-const fetch = require('node-fetch');
-
-const token = process.env.TELEGRAM_BOT_TOKEN;
-const githubToken = process.env.GH_TOKEN;
-const gistId = process.env.GIST_ID;
-
-const bot = new TelegramBot(token, {polling: true});
-
 const drivers = [
     "Lewis Hamilton", "George Russell", "Max Verstappen", "Sergio Perez",
     "Charles Leclerc", "Carlos Sainz", "Lando Norris", "Oscar Piastri",
@@ -15,34 +6,33 @@ const drivers = [
     "Kevin Magnussen", "Nico Hulkenberg", "Alexander Albon", "Logan Sargeant"
 ];
 
-const games = {};
+let score = 0;
+let currentDriver;
+let leaderboard = [];
 
-bot.onText(/\/start/, (msg) => {
-    const chatId = msg.chat.id;
-    bot.sendMessage(chatId, "Welcome to F1 Driver Challenge! Use /play to start a new game.");
-});
+function startGame() {
+    score = 0;
+    document.getElementById('main-menu').style.display = 'none';
+    document.getElementById('game-container').style.display = 'block';
+    nextQuestion();
+}
 
-bot.onText(/\/play/, (msg) => {
-    const chatId = msg.chat.id;
-    games[chatId] = { score: 0, currentDriver: null };
-    nextQuestion(chatId);
-});
+function nextQuestion() {
+    document.getElementById('options').innerHTML = '';
+    document.getElementById('result').innerHTML = '';
+    document.getElementById('next-question').style.display = 'none';
 
-function nextQuestion(chatId) {
-    const game = games[chatId];
-    game.currentDriver = drivers[Math.floor(Math.random() * drivers.length)];
-    const options = getRandomOptions(game.currentDriver);
+    currentDriver = drivers[Math.floor(Math.random() * drivers.length)];
+    const options = getRandomOptions(currentDriver);
 
-    const keyboard = {
-        reply_markup: {
-            keyboard: options.map(option => [{text: option}]),
-            one_time_keyboard: true
-        }
-    };
+    document.getElementById('driver-photo').style.backgroundImage = `url('images/${currentDriver}.jpg')`;
 
-    bot.sendMessage(chatId, `Who is this driver?`, keyboard);
-    // Note: In a real scenario, you would send a photo of the driver here
-    // bot.sendPhoto(chatId, `path_to_image/${game.currentDriver}.jpg`);
+    options.forEach(option => {
+        const button = document.createElement('button');
+        button.textContent = option;
+        button.onclick = () => checkAnswer(option);
+        document.getElementById('options').appendChild(button);
+    });
 }
 
 function getRandomOptions(correctAnswer) {
@@ -64,87 +54,133 @@ function shuffleArray(array) {
     return array;
 }
 
-bot.on('message', (msg) => {
-    const chatId = msg.chat.id;
-    const game = games[chatId];
+function checkAnswer(selectedDriver) {
+    const resultElement = document.getElementById('result');
+    const nextQuestionButton = document.getElementById('next-question');
 
-    if (!game || !game.currentDriver) return;
-
-    if (msg.text === game.currentDriver) {
-        game.score++;
-        bot.sendMessage(chatId, `Correct! Your score is ${game.score}.`);
-        nextQuestion(chatId);
+    if (selectedDriver === currentDriver) {
+        score++;
+        resultElement.textContent = `Correct! Your score is ${score}.`;
+        resultElement.style.color = 'green';
     } else {
-        bot.sendMessage(chatId, `Wrong. The correct answer is ${game.currentDriver}. Your final score is ${game.score}.`);
-        saveScore(msg.from.username || msg.from.first_name, game.score);
-        delete games[chatId];
+        resultElement.textContent = `Wrong. The correct answer is ${currentDriver}. Your score is ${score}.`;
+        resultElement.style.color = 'red';
     }
-});
 
-async function saveScore(username, score) {
+    document.querySelectorAll('#options button').forEach(button => {
+        button.disabled = true;
+    });
+
+    nextQuestionButton.style.display = 'inline-block';
+}
+
+function showLeaderboard() {
+    document.getElementById('main-menu').style.display = 'none';
+    document.getElementById('leaderboard-container').style.display = 'block';
+    
+    const leaderboardList = document.getElementById('leaderboard-list');
+    leaderboardList.innerHTML = '';
+    
+    leaderboard.sort((a, b) => b.score - a.score);
+    
+    leaderboard.forEach((entry, index) => {
+        const listItem = document.createElement('div');
+        listItem.textContent = `${index + 1}. ${entry.username}: ${entry.score}`;
+        leaderboardList.appendChild(listItem);
+    });
+}
+
+function backToMenu() {
+    document.getElementById('leaderboard-container').style.display = 'none';
+    document.getElementById('game-container').style.display = 'none';
+    document.getElementById('main-menu').style.display = 'block';
+}
+
+document.getElementById('next-question').addEventListener('click', nextQuestion);
+document.getElementById('play-button').addEventListener('click', startGame);
+document.getElementById('leaderboard-button').addEventListener('click', showLeaderboard);
+document.getElementById('back-to-menu').addEventListener('click', backToMenu);
+
+window.Telegram.WebApp.ready();
+
+const tg = window.Telegram.WebApp;
+
+const isDarkMode = tg.colorScheme === 'dark';
+if (isDarkMode) {
+    document.body.classList.add('dark-mode');
+}
+
+function endGame() {
+    saveScore();
+    tg.showAlert(`Game Over! Your final score is ${score}.`);
+    backToMenu();
+}
+
+function checkAnswer(selectedDriver) {
+    const resultElement = document.getElementById('result');
+    const nextQuestionButton = document.getElementById('next-question');
+
+    if (selectedDriver === currentDriver) {
+        score++;
+        resultElement.textContent = `Correct! Your score is ${score}.`;
+        resultElement.style.color = 'green';
+    } else {
+        resultElement.textContent = `Wrong. The correct answer is ${currentDriver}. Your score is ${score}.`;
+        resultElement.style.color = 'red';
+        endGame();
+        return;
+    }
+
+    document.querySelectorAll('#options button').forEach(button => {
+        button.disabled = true;
+    });
+
+    nextQuestionButton.style.display = 'inline-block';
+}
+
+async function saveScore() {
+    const username = tg.initDataUnsafe.user.username || 'Anonymous';
     try {
-        const leaderboard = await getLeaderboard();
-        const existingEntry = leaderboard.find(entry => entry.username === username);
-        
-        if (existingEntry) {
-            existingEntry.score = Math.max(existingEntry.score, score);
-        } else {
-            leaderboard.push({ username, score });
-        }
-        
-        leaderboard.sort((a, b) => b.score - a.score);
-        const top10 = leaderboard.slice(0, 10);
-
-        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-            method: 'PATCH',
+        const response = await fetch('https://your-api-url.com/save-score', {
+            method: 'POST',
             headers: {
-                'Authorization': `token ${githubToken}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                files: {
-                    'leaderboard.json': {
-                        content: JSON.stringify(top10)
-                    }
-                }
-            })
+            body: JSON.stringify({ username, score }),
         });
-
         if (!response.ok) {
             throw new Error('Failed to save score');
         }
+        const data = await response.json();
+        console.log('Score saved successfully:', data);
     } catch (error) {
         console.error('Error saving score:', error);
+        tg.showAlert('Failed to save your score. Please try again later.');
     }
 }
 
-async function getLeaderboard() {
+async function loadLeaderboard() {
     try {
-        const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-            headers: {
-                'Authorization': `token ${githubToken}`,
-            }
-        });
-
+        const response = await fetch('https://your-api-url.com/leaderboard');
         if (!response.ok) {
-            throw new Error('Failed to fetch leaderboard');
+            throw new Error('Failed to load leaderboard');
         }
-
         const data = await response.json();
-        return JSON.parse(data.files['leaderboard.json'].content);
+        leaderboard = data;
+        showLeaderboard();
     } catch (error) {
-        console.error('Error fetching leaderboard:', error);
-        return [];
+        console.error('Error loading leaderboard:', error);
+        tg.showAlert('Failed to load leaderboard. Please try again later.');
     }
 }
 
-bot.onText(/\/leaderboard/, async (msg) => {
-    const chatId = msg.chat.id;
-    const leaderboard = await getLeaderboard();
-    const leaderboardText = leaderboard.map((entry, index) => 
-        `${index + 1}. ${entry.username}: ${entry.score}`
-    ).join('\n');
-    bot.sendMessage(chatId, `Leaderboard:\n${leaderboardText}`);
-});
+function initApp() {
+    document.getElementById('main-menu').style.display = 'block';
+    document.getElementById('game-container').style.display = 'none';
+    document.getElementById('leaderboard-container').style.display = 'none';
 
-console.log('Bot is running...');
+    loadLeaderboard();
+}
+
+// Запуск приложения
+initApp();
