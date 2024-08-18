@@ -112,15 +112,16 @@ function endGame() {
 async function saveScore() {
     const username = window.Telegram.WebApp.initDataUnsafe.user.username || 'Anonymous';
     
-    // Проверяем, существует ли уже запись для этого пользователя
-    const existingEntryIndex = leaderboard[gameMode].findIndex(
-        entry => entry.username === username && entry.difficulty === difficulty
-    );
-
+    // Находим все записи пользователя
+    const userEntries = leaderboard[gameMode].filter(entry => entry.username === username);
+    
+    // Проверяем, есть ли запись для текущей сложности
+    const existingEntryIndex = userEntries.findIndex(entry => entry.difficulty === difficulty);
+    
     if (existingEntryIndex !== -1) {
         // Если запись существует, обновляем ее только если новый счет выше
-        if (score > leaderboard[gameMode][existingEntryIndex].score) {
-            leaderboard[gameMode][existingEntryIndex].score = score;
+        if (score > userEntries[existingEntryIndex].score) {
+            userEntries[existingEntryIndex].score = score;
         }
     } else {
         // Если записи нет, добавляем новую
@@ -136,8 +137,11 @@ async function saveScore() {
         return b.score - a.score;
     });
 
-    // Оставляем только топ-10 результатов
-    leaderboard[gameMode] = leaderboard[gameMode].slice(0, 10);
+    // Оставляем только лучшие результаты (максимум 3 для каждого пользователя)
+    const uniqueUsers = new Set(leaderboard[gameMode].map(entry => entry.username));
+    leaderboard[gameMode] = Array.from(uniqueUsers).flatMap(user => 
+        leaderboard[gameMode].filter(entry => entry.username === user).slice(0, 3)
+    ).slice(0, 10);
 
     try {
         const response = await fetch(LEADERBOARD_URL, {
