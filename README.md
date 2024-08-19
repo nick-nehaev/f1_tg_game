@@ -2,7 +2,7 @@
 
 Telegram bot: [@formula_one_gamebot](https://t.me/formula_one_gamebot)
 
-### Latest version: 2.6
+### Latest version: 3.4
 #### ToDo: 
 - add photos of cars (there are no photos rn)
 - add more photos of drivers
