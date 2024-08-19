@@ -21,7 +21,7 @@ const DIFFICULTY_SETTINGS = {
 
 async function loadNames(category, difficulty) {
     try {
-        const response = await fetch(`${category}/${difficulty}/names.txt`);
+        const response = await fetch(`${category}/${difficulty}.txt`);
         const text = await response.text();
         return text.split('\n').filter(name => name.trim() !== '');
     } catch (error) {
@@ -89,7 +89,7 @@ function nextQuestion() {
     currentItem = items[Math.floor(Math.random() * items.length)];
     const options = getRandomOptions(currentItem, items);
 
-    document.getElementById('item-photo').style.backgroundImage = `url('${gameMode}/${difficulty}/images/${currentItem}.jpg')`;
+    document.getElementById('item-photo').style.backgroundImage = `url('${gameMode}/images/${currentItem}.jpg')`;
 
     options.forEach(option => {
         const button = document.createElement('button');
