@@ -14,9 +14,9 @@ let timerInterval;
 const LEADERBOARD_URL = 'https://api.npoint.io/e2ef559b827af9391eab';
 
 const DIFFICULTY_SETTINGS = {
-    easy: { time: 120, bonus: 15 },
-    medium: { time: 90, bonus: 10 },
-    hard: { time: 60, bonus: 5 }
+    easy: { time: 120, bonus: 7 },
+    medium: { time: 90, bonus: 5 },
+    hard: { time: 60, bonus: 3 }
 };
 
 async function loadNames(category, difficulty) {
