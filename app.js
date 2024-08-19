@@ -1,16 +1,27 @@
 let drivers = {easy: [], medium: [], hard: []};
 let cars = {easy: [], medium: [], hard: []};
+let recentlyUsedOptions = [];
 let score = 0;
 let currentItem;
 let gameMode = '';
 let difficulty = '';
 let leaderboard = {drivers: [], cars: []};
+let timer;
+let timeLeft;
+let timerPaused = false;
+let timerInterval;
 
 const LEADERBOARD_URL = 'https://api.npoint.io/e2ef559b827af9391eab';
 
+const DIFFICULTY_SETTINGS = {
+    easy: { time: 120, bonus: 7 },
+    medium: { time: 90, bonus: 5 },
+    hard: { time: 60, bonus: 3 }
+};
+
 async function loadNames(category, difficulty) {
     try {
-        const response = await fetch(`${category}/${difficulty}.txt`);
+        const response = await fetch(`${category}/${difficulty}/names.txt`);
         const text = await response.text();
         return text.split('\n').filter(name => name.trim() !== '');
     } catch (error) {
@@ -39,7 +50,32 @@ function startGame(diff) {
     score = 0;
     document.getElementById('difficulty-menu').style.display = 'none';
     document.getElementById('game-container').style.display = 'block';
+    timeLeft = DIFFICULTY_SETTINGS[difficulty].time; // Set initial time based on difficulty
+    startTimer();
     nextQuestion();
+}
+
+// Update the startTimer function
+function startTimer() {
+    clearInterval(timerInterval);
+    timerPaused = false;
+    updateTimerDisplay();
+    timerInterval = setInterval(() => {
+        if (!timerPaused) {
+            timeLeft--;
+            updateTimerDisplay();
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                endGame();
+            }
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay() {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    document.getElementById('timer').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
 function nextQuestion() {
@@ -53,7 +89,7 @@ function nextQuestion() {
     currentItem = items[Math.floor(Math.random() * items.length)];
     const options = getRandomOptions(currentItem, items);
 
-    document.getElementById('item-photo').style.backgroundImage = `url('${gameMode}/images/${currentItem}.jpg')`;
+    document.getElementById('item-photo').style.backgroundImage = `url('${gameMode}/${difficulty}/images/${currentItem}.jpg')`;
 
     options.forEach(option => {
         const button = document.createElement('button');
@@ -65,13 +101,34 @@ function nextQuestion() {
 
 function getRandomOptions(correctAnswer, items) {
     const options = [correctAnswer];
+    const availableItems = items.filter(item => 
+        !recentlyUsedOptions.flat().includes(item) && item !== correctAnswer
+    );
+
+    while (options.length < 4 && availableItems.length > 0) {
+        const randomIndex = Math.floor(Math.random() * availableItems.length);
+        const randomItem = availableItems[randomIndex];
+        options.push(randomItem);
+        availableItems.splice(randomIndex, 1);
+    }
+
+    // If we don't have enough unique options, fill with random items
     while (options.length < 4) {
         const randomItem = items[Math.floor(Math.random() * items.length)];
         if (!options.includes(randomItem)) {
             options.push(randomItem);
         }
     }
-    return shuffleArray(options);
+
+    const shuffledOptions = shuffleArray(options);
+
+    // Update recently used options
+    recentlyUsedOptions.push(shuffledOptions);
+    if (recentlyUsedOptions.length > 2) {
+        recentlyUsedOptions.shift();
+    }
+
+    return shuffledOptions;
 }
 
 function shuffleArray(array) {
@@ -88,9 +145,12 @@ function checkAnswer(selectedItem) {
 
     if (selectedItem === currentItem) {
         score++;
+        timeLeft += DIFFICULTY_SETTINGS[difficulty].bonus;
+        updateTimerDisplay();
         resultElement.textContent = `Correct! Your score is ${score}.`;
         resultElement.style.color = 'green';
         nextQuestionButton.style.display = 'inline-block';
+        timerPaused = true; // Pause the timer
     } else {
         resultElement.textContent = `Wrong. The correct answer is ${currentItem}. Your score is ${score}.`;
         resultElement.style.color = 'red';
@@ -104,8 +164,9 @@ function checkAnswer(selectedItem) {
 }
 
 function endGame() {
+    clearInterval(timerInterval);
     saveScore().then(() => {
-        loadLeaderboard();  // Загружаем обновленный лидерборд
+        loadLeaderboard();
         window.Telegram.WebApp.showAlert(`Game Over! Your final score is ${score}.`);
         backToMenu();
     });
