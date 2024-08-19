@@ -1,5 +1,6 @@
 let drivers = {easy: [], medium: [], hard: []};
 let cars = {easy: [], medium: [], hard: []};
+let recentlyUsedOptions = [];
 let score = 0;
 let currentItem;
 let gameMode = '';
@@ -92,13 +93,34 @@ function nextQuestion() {
 
 function getRandomOptions(correctAnswer, items) {
     const options = [correctAnswer];
+    const availableItems = items.filter(item => 
+        !recentlyUsedOptions.flat().includes(item) && item !== correctAnswer
+    );
+
+    while (options.length < 4 && availableItems.length > 0) {
+        const randomIndex = Math.floor(Math.random() * availableItems.length);
+        const randomItem = availableItems[randomIndex];
+        options.push(randomItem);
+        availableItems.splice(randomIndex, 1);
+    }
+
+    // If we don't have enough unique options, fill with random items
     while (options.length < 4) {
         const randomItem = items[Math.floor(Math.random() * items.length)];
         if (!options.includes(randomItem)) {
             options.push(randomItem);
         }
     }
-    return shuffleArray(options);
+
+    const shuffledOptions = shuffleArray(options);
+
+    // Update recently used options
+    recentlyUsedOptions.push(shuffledOptions);
+    if (recentlyUsedOptions.length > 2) {
+        recentlyUsedOptions.shift();
+    }
+
+    return shuffledOptions;
 }
 
 function shuffleArray(array) {
