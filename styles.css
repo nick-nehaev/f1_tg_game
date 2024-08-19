@@ -36,6 +36,30 @@ body {
     width: 350px;
 }
 
+#game-container {
+    position: relative;
+    padding-top: 60px; /* Increased to accommodate timer container */
+}
+
+#timer-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--f1-white);
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    padding: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+#timer {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--f1-red);
+    text-align: right;
+}
+
 button {
     margin: 10px 5px;
     padding: 12px 24px;
@@ -135,6 +159,15 @@ button.return {
     box-shadow: 0 0 10px rgba(255,255,255,0.1);
 }
 
+.dark-mode #timer-container {
+    background-color: var(--f1-black);
+    box-shadow: 0 2px 5px rgba(255,255,255,0.1);
+}
+
+.dark-mode #timer {
+    color: var(--f1-white);
+}
+
 .dark-mode button.easy {
     background-color: var(--f1-red);
 }
@@ -176,6 +209,10 @@ button.return {
         padding: 15px;
     }
 
+    #game-container {
+        padding-top: 55px; /* Slightly reduced for mobile */
+    }
+
     button {
         width: 100%;
         margin: 10px 0;
@@ -193,17 +230,4 @@ button.return {
     #leaderboard-container th, #leaderboard-container td {
         padding: 6px;
     }
-}
-
-#timer {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    font-size: 24px;
-    font-weight: bold;
-    color: var(--f1-red);
-}
-
-.dark-mode #timer {
-    color: var(--f1-white);
 }
