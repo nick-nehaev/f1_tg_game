@@ -8,6 +8,8 @@ let difficulty = '';
 let leaderboard = {drivers: [], cars: []};
 let timer;
 let timeLeft;
+let timerPaused = false;
+let timerInterval;
 
 const LEADERBOARD_URL = 'https://api.npoint.io/e2ef559b827af9391eab';
 
@@ -48,20 +50,24 @@ function startGame(diff) {
     score = 0;
     document.getElementById('difficulty-menu').style.display = 'none';
     document.getElementById('game-container').style.display = 'block';
+    timeLeft = DIFFICULTY_SETTINGS[difficulty].time; // Set initial time based on difficulty
     startTimer();
     nextQuestion();
 }
 
+// Update the startTimer function
 function startTimer() {
-    clearInterval(timer);
-    timeLeft = DIFFICULTY_SETTINGS[difficulty].time;
+    clearInterval(timerInterval);
+    timerPaused = false;
     updateTimerDisplay();
-    timer = setInterval(() => {
-        timeLeft--;
-        updateTimerDisplay();
-        if (timeLeft <= 0) {
-            clearInterval(timer);
-            endGame();
+    timerInterval = setInterval(() => {
+        if (!timerPaused) {
+            timeLeft--;
+            updateTimerDisplay();
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                endGame();
+            }
         }
     }, 1000);
 }
@@ -76,6 +82,8 @@ function nextQuestion() {
     document.getElementById('options').innerHTML = '';
     document.getElementById('result').innerHTML = '';
     document.getElementById('next-question').style.display = 'none';
+    
+    timerPaused = false; // Resume the timer
 
     const items = gameMode === 'drivers' ? drivers[difficulty] : cars[difficulty];
     currentItem = items[Math.floor(Math.random() * items.length)];
@@ -142,6 +150,7 @@ function checkAnswer(selectedItem) {
         resultElement.textContent = `Correct! Your score is ${score}.`;
         resultElement.style.color = 'green';
         nextQuestionButton.style.display = 'inline-block';
+        timerPaused = true; // Pause the timer
     } else {
         resultElement.textContent = `Wrong. The correct answer is ${currentItem}. Your score is ${score}.`;
         resultElement.style.color = 'red';
@@ -155,7 +164,7 @@ function checkAnswer(selectedItem) {
 }
 
 function endGame() {
-    clearInterval(timer);
+    clearInterval(timerInterval);
     saveScore().then(() => {
         loadLeaderboard();
         window.Telegram.WebApp.showAlert(`Game Over! Your final score is ${score}.`);
