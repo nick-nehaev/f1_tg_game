@@ -194,3 +194,16 @@ button.return {
         padding: 6px;
     }
 }
+
+#timer {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--f1-red);
+}
+
+.dark-mode #timer {
+    color: var(--f1-white);
+}

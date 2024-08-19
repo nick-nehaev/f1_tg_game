@@ -5,8 +5,16 @@ let currentItem;
 let gameMode = '';
 let difficulty = '';
 let leaderboard = {drivers: [], cars: []};
+let timer;
+let timeLeft;
 
 const LEADERBOARD_URL = 'https://api.npoint.io/e2ef559b827af9391eab';
+
+const DIFFICULTY_SETTINGS = {
+    easy: { time: 120, bonus: 15 },
+    medium: { time: 90, bonus: 10 },
+    hard: { time: 60, bonus: 5 }
+};
 
 async function loadNames(category, difficulty) {
     try {
@@ -39,7 +47,28 @@ function startGame(diff) {
     score = 0;
     document.getElementById('difficulty-menu').style.display = 'none';
     document.getElementById('game-container').style.display = 'block';
+    startTimer();
     nextQuestion();
+}
+
+function startTimer() {
+    clearInterval(timer);
+    timeLeft = DIFFICULTY_SETTINGS[difficulty].time;
+    updateTimerDisplay();
+    timer = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            endGame();
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay() {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    document.getElementById('timer').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
 function nextQuestion() {
@@ -86,6 +115,8 @@ function checkAnswer(selectedItem) {
 
     if (selectedItem === currentItem) {
         score++;
+        timeLeft += DIFFICULTY_SETTINGS[difficulty].bonus;
+        updateTimerDisplay();
         resultElement.textContent = `Correct! Your score is ${score}.`;
         resultElement.style.color = 'green';
         nextQuestionButton.style.display = 'inline-block';
@@ -102,8 +133,9 @@ function checkAnswer(selectedItem) {
 }
 
 function endGame() {
+    clearInterval(timer);
     saveScore().then(() => {
-        loadLeaderboard();  // Загружаем обновленный лидерборд
+        loadLeaderboard();
         window.Telegram.WebApp.showAlert(`Game Over! Your final score is ${score}.`);
         backToMenu();
     });
